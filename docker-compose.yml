@@ -210,8 +210,8 @@ services:
   app:
     image: beardedtek/notesnook-web
     build:
-      context: .
-      dockerfile: Dockerfile-webapp
+      context: app
+      dockerfile: Dockerfile
     ports:
       - "8888:80"
     restart: always
