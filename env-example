@@ -74,7 +74,7 @@ TWILIO_SERVICE_SID=
 # Description: This is the public URL for the Sync server. It'll be used by the Notesnook clients for making API requests.
 # Required: yes
 # Example: https://sync.notesnook.com
-NOTESNOOK_SYNC_PUBLIC_URL=https://${BASE_DOMAIN}
+NOTESNOOK_SYNC_PUBLIC_URL=https://${NOTESNOOK_SYNC_DOMAIN}
 
 # Description: Add the origins for which you want to allow CORS. Leave it empty to allow all origins to access your server. If you want to allow multiple origins, seperate each origin with a comma.
 # Required: no
@@ -85,59 +85,27 @@ NOTESNOOK_CORS_ORIGINS=
 # Note: the URL has no slashes at the end
 # Required: yes
 # Example: https://app.notesnook.com
-NOTESNOOK_APP_PUBLIC_URL=https://app.${BASE_DOMAIN}
+NOTESNOOK_APP_PUBLIC_URL=https://${NOTESNOOK_APP_DOMAIN}
 
 # Description: This is the public URL for the monograph frontend.
 # Required: yes
 # Example: https://monogr.ph
-MONOGRAPH_PUBLIC_URL=https://monograph.${BASE_DOMAIN}
+MONOGRAPH_PUBLIC_URL=https://${NOTESNOOK_MONOGRAPH_DOMAIN}
 
 # Description: This is the public URL for the Authentication server. Used for generating email confirmation & password reset URLs.
 # Required: yes
 # Example: https://auth.streetwriters.co
-AUTH_SERVER_PUBLIC_URL=https://auth.${BASE_DOMAIN}
+AUTH_SERVER_PUBLIC_URL=https://${NOTESNOOK_AUTH_DOMAIN}
 
 # Description: This is the public URL for the S3 attachments server (minio). It'll be used by the Notesnook clients for uploading/downloading attachments.
 # Required: yes
 # Example: https://attachments.notesnook.com
-ATTACHMENTS_SERVER_PUBLIC_URL=https://s3.${BASE_DOMAIN}
+ATTACHMENTS_SERVER_PUBLIC_URL=https://${NOTESNOOK_S3_DOMAIN}
 
 # Description: This is the public URL for the SSE server. It'll be used by the Notesnook clients for real-time sync.
 # Required: Only if using Traefik
 # Example: https://sse.notesnook.com
-SSE_SERVER_PUBLIC_URL=https://sse.${BASE_DOMAIN}
-
-
-
-### Notesnook Web App Configuration ###
-# These environment variables are used by the React web client to connect to your self-hosted Notesnook instance.
-# They are automatically set based on the server URLs above.
-
-# Description: API URL for the main sync server. Used by the React web client for API requests.
-# Required: yes (automatically set from NOTESNOOK_SYNC_PUBLIC_URL)
-REACT_APP_API_URL=${NOTESNOOK_SYNC_PUBLIC_URL}
-
-# Description: Identity server URL for authentication. Used by the React web client for login/signup.
-# Required: yes (automatically set from AUTH_SERVER_PUBLIC_URL)
-REACT_APP_IDENTITY_URL=${AUTH_SERVER_PUBLIC_URL}
-
-# Description: Server-Sent Events URL for real-time sync. Used by the React web client for live updates.
-# Required: yes (automatically set from SSE_SERVER_PUBLIC_URL)
-REACT_APP_SSE_URL=${SSE_SERVER_PUBLIC_URL}
-
-# Description: Monograph server URL for public note sharing. Used by the React web client for sharing features.
-# Required: yes (automatically set from MONOGRAPH_PUBLIC_URL)
-REACT_APP_MONOGRAPH_URL=${MONOGRAPH_PUBLIC_URL}
-
-# Description: Attachments server URL for file uploads/downloads. Used by the React web client for file handling.
-# Required: yes (automatically set from ATTACHMENTS_SERVER_PUBLIC_URL)
-REACT_APP_ATTACHMENTS_URL=${ATTACHMENTS_SERVER_PUBLIC_URL}
-
-# Description: Instance name for identification. Used by the React web client to identify your self-hosted instance.
-# Required: yes (automatically set from INSTANCE_NAME)
-REACT_APP_INSTANCE_NAME=${INSTANCE_NAME}
-
-
+SSE_SERVER_PUBLIC_URL=https://${NOTESNOOK_SSE_DOMAIN}
 
 
 ### Minio Configuration
