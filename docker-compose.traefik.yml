@@ -96,7 +96,7 @@ services:
       # Required for accessing Notesnook via web browser
       - 'traefik.enable=true'
       - 'traefik.docker.network=traefik'
-      - 'traefik.http.routers.notesnook-app.rule=Host(`NOTESNOOK_APP_DOMAIN`)'
+      - 'traefik.http.routers.notesnook-app.rule=Host(`${NOTESNOOK_APP_DOMAIN}`)'
       - 'traefik.http.routers.notesnook-app.entryPoints=https'
       - 'traefik.http.routers.notesnook-app.tls=true'
       - 'traefik.http.routers.notesnook-app.tls.certresolver=le'
