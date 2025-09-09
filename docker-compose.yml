@@ -1,0 +1,230 @@
+x-server-discovery: &server-discovery
+  NOTESNOOK_SERVER_PORT: 5264
+  NOTESNOOK_SERVER_HOST: notesnook-server
+  IDENTITY_SERVER_PORT: 8264
+  IDENTITY_SERVER_HOST: identity-server
+  SSE_SERVER_PORT: 7264
+  SSE_SERVER_HOST: sse-server
+  SELF_HOSTED: 1
+  IDENTITY_SERVER_URL: ${AUTH_SERVER_PUBLIC_URL}
+  NOTESNOOK_APP_HOST: ${NOTESNOOK_APP_PUBLIC_URL}
+
+x-env-files: &env-files
+  - .env
+
+services:
+  validate:
+    image: vandot/alpine-bash
+    entrypoint: /bin/bash
+    env_file: *env-files
+    command:
+      - -c
+      - |
+        # List of required environment variables
+        required_vars=(
+          "INSTANCE_NAME"
+          "NOTESNOOK_API_SECRET"
+          "DISABLE_SIGNUPS"
+          "SMTP_USERNAME"
+          "SMTP_PASSWORD"
+          "SMTP_HOST"
+          "SMTP_PORT"
+          "AUTH_SERVER_PUBLIC_URL"
+          "NOTESNOOK_APP_PUBLIC_URL"
+          "MONOGRAPH_PUBLIC_URL"
+          "ATTACHMENTS_SERVER_PUBLIC_URL"
+        )
+
+        # Check each required environment variable
+        for var in "$${required_vars[@]}"; do
+          if [ -z "$${!var}" ]; then
+            echo "Error: Required environment variable $$var is not set."
+            exit 1
+          fi
+        done
+
+        echo "All required environment variables are set."
+    # Ensure the validate service runs first
+    restart: "no"
+
+  notesnook-db:
+    image: mongo:7.0.12
+    hostname: notesnook-db
+    volumes:
+      - dbdata:/data/db
+    networks:
+      - notesnook
+    command: --replSet rs0 --bind_ip_all
+    depends_on:
+      validate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: echo 'try { rs.status() } catch (err) { rs.initiate() }; db.runCommand("ping").ok' | mongosh mongodb://localhost:27017 --quiet
+      interval: 40s
+      timeout: 30s
+      retries: 3
+      start_period: 60s
+
+  notesnook-s3:
+    image: minio/minio:RELEASE.2024-07-29T22-14-52Z
+    ports:
+      - 9000:9000
+    networks:
+      - notesnook
+    volumes:
+      - s3data:/data/s3
+    environment:
+      MINIO_BROWSER: "on"
+    depends_on:
+      validate:
+        condition: service_completed_successfully
+    env_file: *env-files
+    command: server /data/s3 --console-address :9090
+    healthcheck:
+      test: timeout 5s bash -c ':> /dev/tcp/127.0.0.1/9000' || exit 1
+      interval: 40s
+      timeout: 30s
+      retries: 3
+      start_period: 60s
+
+  # There's no way to specify a default bucket in Minio so we have to
+  # set it up ourselves.
+  setup-s3:
+    image: minio/mc:RELEASE.2024-07-26T13-08-44Z
+    depends_on:
+      - notesnook-s3
+    networks:
+      - notesnook
+    entrypoint: /bin/bash
+    env_file: *env-files
+    command:
+      - -c
+      - |
+        until mc alias set minio http://notesnook-s3:9000 ${MINIO_ROOT_USER:-minioadmin} ${MINIO_ROOT_PASSWORD:-minioadmin}; do
+          sleep 1;
+        done;
+        mc mb minio/attachments -p
+
+  identity-server:
+    image: streetwriters/identity:latest
+    ports:
+      - 8264:8264
+    networks:
+      - notesnook
+    env_file: *env-files
+    depends_on:
+      - notesnook-db
+    healthcheck:
+      test: wget --tries=1 -nv -q  http://localhost:8264/health -O- || exit 1
+      interval: 40s
+      timeout: 30s
+      retries: 3
+      start_period: 60s
+    environment:
+      <<: *server-discovery
+      MONGODB_CONNECTION_STRING: mongodb://notesnook-db:27017/identity?replSet=rs0
+      MONGODB_DATABASE_NAME: identity
+
+  notesnook-server:
+    image: streetwriters/notesnook-sync:latest
+    ports:
+      - 5264:5264
+    networks:
+      - notesnook
+    env_file: *env-files
+    depends_on:
+      - notesnook-s3
+      - setup-s3
+      - identity-server
+    healthcheck:
+      test: wget --tries=1 -nv -q  http://localhost:5264/health -O- || exit 1
+      interval: 40s
+      timeout: 30s
+      retries: 3
+      start_period: 60s
+    environment:
+      <<: *server-discovery
+      MONGODB_CONNECTION_STRING: mongodb://notesnook-db:27017/?replSet=rs0
+      MONGODB_DATABASE_NAME: notesnook
+      S3_INTERNAL_SERVICE_URL: "http://notesnook-s3:9000"
+      S3_INTERNAL_BUCKET_NAME: "attachments"
+      S3_ACCESS_KEY_ID: "${MINIO_ROOT_USER:-minioadmin}"
+      S3_ACCESS_KEY: "${MINIO_ROOT_PASSWORD:-minioadmin}"
+      S3_SERVICE_URL: "${ATTACHMENTS_SERVER_PUBLIC_URL}"
+      S3_REGION: "us-east-1"
+      S3_BUCKET_NAME: "attachments"
+
+  sse-server:
+    image: streetwriters/sse:latest
+    ports:
+      - 7264:7264
+    env_file: *env-files
+    depends_on:
+      - identity-server
+      - notesnook-server
+    networks:
+      - notesnook
+    healthcheck:
+      test: wget --tries=1 -nv -q  http://localhost:7264/health -O- || exit 1
+      interval: 40s
+      timeout: 30s
+      retries: 3
+      start_period: 60s
+    environment:
+      <<: *server-discovery
+
+  monograph-server:
+    image: streetwriters/monograph:latest
+    ports:
+      - 6264:3000
+    env_file: *env-files
+    depends_on:
+      - notesnook-server
+    networks:
+      - notesnook
+    healthcheck:
+      test: wget --tries=1 -nv -q  http://localhost:3000/api/health -O- || exit 1
+      interval: 40s
+      timeout: 30s
+      retries: 3
+      start_period: 60s
+    environment:
+      <<: *server-discovery
+      API_HOST: http://notesnook-server:5264
+      PUBLIC_URL: ${MONOGRAPH_PUBLIC_URL}
+
+  autoheal:
+    image: willfarrell/autoheal:latest
+    tty: true
+    restart: always
+    environment:
+      - AUTOHEAL_INTERVAL=60
+      - AUTOHEAL_START_PERIOD=300
+      - AUTOHEAL_DEFAULT_STOP_TIMEOUT=10
+    depends_on:
+      validate:
+        condition: service_completed_successfully
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  app:
+    image: beardedtek/notesnook-web
+    build:
+      context: .
+      dockerfile: Dockerfile-webapp
+    ports:
+      - "8888:80"
+    restart: always
+    healthcheck:
+      test: wget --tries=1 -nv -q  http://localhost:80/health -O- || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  notesnook:
+
+volumes:
+  dbdata:
+  s3data:

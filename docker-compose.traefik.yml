@@ -1,0 +1,104 @@
+networks:
+  traefik:
+    external: true
+
+services:
+  sse-server:
+    networks:
+      - traefik
+    labels:
+    # Enable Traefik for SSE Server
+    # Required for real-time updates in Notesnook app
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      - 'traefik.http.routers.sse.rule=Host(`${SSE_SERVER_PUBLIC_URL}`)'
+      - 'traefik.http.routers.sse.entryPoints=https'
+      - 'traefik.http.routers.sse.tls=true'
+      - 'traefik.http.routers.sse.tls.certresolver=le'
+      - "traefik.http.routers.sse.service=sse-entrypoint"
+      - 'traefik.http.services.sse-entrypoint.loadbalancer.server.port=7264'
+
+  notesnook-s3:
+    networks:
+      - traefik
+    labels:
+      # Enable Traefik for S3 Server
+      # Required for attachments upload/download
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      - 'traefik.http.routers.s3.rule=Host(`${ATTACHMENTS_SERVER_PUBLIC_URL}`)'
+      - 'traefik.http.routers.s3.entryPoints=https'
+      - 'traefik.http.routers.s3.tls=true'
+      - 'traefik.http.routers.s3.tls.certresolver=le'
+      - "traefik.http.routers.s3.service=s3-entrypoint"
+      - 'traefik.http.services.s3-entrypoint.loadbalancer.server.port=9000'
+
+      # Enable Traefik for Minio Frontend
+      # OPTIONAL for accessing Minio web interface
+      # Not necessary for operation of Notesnook
+      # - 'traefik.http.routers.app-s3.rule=Host(`app.${ATTACHMENTS_SERVER_PUBLIC_URL}`)'
+      # - 'traefik.http.routers.app-s3.entryPoints=https'
+      # - 'traefik.http.routers.app-s3.tls=true'
+      # - 'traefik.http.routers.app-s3.tls.certresolver=le'
+      # - "traefik.http.routers.app-s3.service=app-s3-entrypoint"
+      # - 'traefik.http.services.app-s3-entrypoint.loadbalancer.server.port=9090'
+  identity-server:
+    networks:
+      - traefik
+    labels:
+    # Enable Traefik for Identity Server
+    # Required for user authentication in Notesnook app
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      - 'traefik.http.routers.notesnook-id.rule=Host(`${IDENTITY_SERVER_PUBLIC_URL}`)'
+      - 'traefik.http.routers.notesnook-id.entryPoints=https'
+      - 'traefik.http.routers.notesnook-id.tls=true'
+      - 'traefik.http.routers.notesnook-id.tls.certresolver=le'
+      - "traefik.http.routers.notesnook-id.service=notesnook-id-entrypoint"
+      - 'traefik.http.services.notesnook-id-entrypoint.loadbalancer.server.port=8264'
+
+  notesnook-server:
+    networks:
+      - traefik
+    labels:
+      # Enable Traefik for Notesnook Server
+      # Required for Notesnook sync functionality
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      - 'traefik.http.routers.notesnook-server.rule=Host(`${NOTESNOOK_SYNC_PUBLIC_URL}`)'
+      - 'traefik.http.routers.notesnook-server.entryPoints=https'
+      - 'traefik.http.routers.notesnook-server.tls=true'
+      - 'traefik.http.routers.notesnook-server.tls.certresolver=le'
+      - "traefik.http.routers.notesnook-server.service=notesnook-server-entrypoint"
+      - 'traefik.http.services.notesnook-server-entrypoint.loadbalancer.server.port=5264'
+      - 'traefik.http.services.notesnook-server-entrypoint.loadbalancer.server.scheme=http'
+
+  monograph-server:
+    networks:
+      - traefik
+    labels:
+      # Enable Traefik for Monograph Server
+      # Required for Sharing and Publishing functionality in Notesnook
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      - 'traefik.http.routers.monograph.rule=Host(`monograph.jeandr.net`)'
+      - 'traefik.http.routers.monograph.entryPoints=https'
+      - 'traefik.http.routers.monograph.tls=true'
+      - 'traefik.http.routers.monograph.tls.certresolver=le'
+      - "traefik.http.routers.monograph.service=monograph-entrypoint"
+      - 'traefik.http.services.monograph-entrypoint.loadbalancer.server.port=3000'
+
+  app:
+    networks:
+      - traefik
+    labels:
+      # Enable Traefik for Notesnook Web App
+      # Required for accessing Notesnook via web browser
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      - 'traefik.http.routers.notesnook-app.rule=Host(`app.notes.jeandr.net`)'
+      - 'traefik.http.routers.notesnook-app.entryPoints=https'
+      - 'traefik.http.routers.notesnook-app.tls=true'
+      - 'traefik.http.routers.notesnook-app.tls.certresolver=le'
+      - "traefik.http.routers.notesnook-app.service=notesnook-app-entrypoint"
+      - 'traefik.http.services.notesnook-app-entrypoint.loadbalancer.server.port=80'
