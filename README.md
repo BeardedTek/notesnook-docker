@@ -82,20 +82,25 @@ docker-compose logs -f
 ### Environment Variables
 
 #### Core Configuration
+
 - `BASE_DOMAIN` - Your domain name (e.g., `example.com`)
 - `INSTANCE_NAME` - Unique identifier for your instance
 - `NOTESNOOK_API_SECRET` - Secure random token for API authentication
 - `DISABLE_SIGNUPS` - Set to `true` to disable new user registration
 
 #### SMTP Configuration
+
 Required for email notifications (password reset, 2FA, etc.):
+
 - `SMTP_USERNAME` - Your SMTP username (usually your email)
 - `SMTP_PASSWORD` - Your SMTP password
 - `SMTP_HOST` - SMTP server hostname
 - `SMTP_PORT` - SMTP server port (usually 587 or 465)
 
 #### Public URLs
+
 Automatically generated based on your `BASE_DOMAIN`:
+
 - `NOTESNOOK_SYNC_PUBLIC_URL` - Main sync server
 - `NOTESNOOK_APP_PUBLIC_URL` - Web application
 - `AUTH_SERVER_PUBLIC_URL` - Authentication server
@@ -104,7 +109,9 @@ Automatically generated based on your `BASE_DOMAIN`:
 - `ATTACHMENTS_SERVER_PUBLIC_URL` - File storage server
 
 #### React Web Client
+
 Automatically configured to connect to your self-hosted services:
+
 - `REACT_APP_API_URL` - Points to sync server
 - `REACT_APP_IDENTITY_URL` - Points to auth server
 - `REACT_APP_SSE_URL` - Points to SSE server
