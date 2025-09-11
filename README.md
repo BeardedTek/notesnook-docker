@@ -67,6 +67,9 @@ MINIO_ROOT_PASSWORD=your-secure-password
 ### 3. Deploy
 
 ```bash
+# Build the app container
+docker compose build
+
 # Start all services
 docker-compose up -d
 
