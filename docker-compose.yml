@@ -215,12 +215,6 @@ services:
     ports:
       - "8888:80"
     restart: always
-    healthcheck:
-      test: wget --tries=1 -nv -q  http://localhost:80/health -O- || exit 1
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
 
 networks:
   notesnook:
