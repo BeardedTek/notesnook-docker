@@ -124,7 +124,7 @@ MINIO_ROOT_PASSWORD=
 # Description: Override the default API server URL for the web app. If not set, will use the default Notesnook API.
 # Required: no
 # Example: https://sync.notesnook.com
-NN_API_HOST=${NOSTESNOOK_SYNC_PUBLIC_URL}
+NN_API_HOST=${NOTESNOOK_SYNC_PUBLIC_URL}
 
 # Description: Override the default authentication server URL for the web app. If not set, will use the default Notesnook auth server.
 # Required: no
