@@ -113,14 +113,14 @@ Automatically generated based on your `BASE_DOMAIN`:
 
 #### React Web Client
 
-Automatically configured to connect to your self-hosted services:
+The web app is automatically configured to connect to your self-hosted services using the public URLs defined above. The following environment variables can be used to override the default server URLs:
 
-- `REACT_APP_API_URL` - Points to sync server
-- `REACT_APP_IDENTITY_URL` - Points to auth server
-- `REACT_APP_SSE_URL` - Points to SSE server
-- `REACT_APP_MONOGRAPH_URL` - Points to monograph server
-- `REACT_APP_ATTACHMENTS_URL` - Points to file storage
-- `REACT_APP_INSTANCE_NAME` - Instance identifier
+- `NN_API_HOST` - Override the default API server URL (defaults to `NOTESNOOK_SYNC_PUBLIC_URL`)
+- `NN_AUTH_HOST` - Override the default authentication server URL (defaults to `AUTH_SERVER_PUBLIC_URL`)
+- `NN_SSE_HOST` - Override the default SSE server URL (defaults to `SSE_SERVER_PUBLIC_URL`)
+- `NN_MONOGRAPH_HOST` - Override the default monograph server URL (defaults to `MONOGRAPH_PUBLIC_URL`)
+
+**Note**: These variables are optional and will automatically use your self-hosted service URLs if not specified.
 
 ### Service Ports
 

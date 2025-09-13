@@ -212,9 +212,15 @@ services:
     build:
       context: app
       dockerfile: Dockerfile
+      args:
+        NN_API_HOST: ${NOTESNOOK_SYNC_PUBLIC_URL}
+        NN_AUTH_HOST: ${AUTH_SERVER_PUBLIC_URL}
+        NN_SSE_HOST: ${SSE_SERVER_PUBLIC_URL}
+        NN_MONOGRAPH_HOST: ${MONOGRAPH_PUBLIC_URL}
     ports:
       - "8888:80"
     restart: always
+    env_file: *env-files
 
 networks:
   notesnook:

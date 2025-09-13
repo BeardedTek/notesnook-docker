@@ -13,6 +13,18 @@ RUN git clone --depth=1 https://github.com/streetwriters/notesnook.git .
 # Install dependencies (monorepo root)
 RUN npm ci
 
+# Accept build-time environment variables for server URLs
+ARG NN_API_HOST
+ARG NN_AUTH_HOST
+ARG NN_SSE_HOST
+ARG NN_MONOGRAPH_HOST
+
+# Set environment variables for the build process
+ENV NN_API_HOST=${NN_API_HOST}
+ENV NN_AUTH_HOST=${NN_AUTH_HOST}
+ENV NN_SSE_HOST=${NN_SSE_HOST}
+ENV NN_MONOGRAPH_HOST=${NN_MONOGRAPH_HOST}
+
 # Build just the web app
 RUN npm run build:web
 
