@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends git \
     && rm -rf /var/lib/apt/lists/*
 
 # Clone Notesnook monorepo
-RUN git clone --depth=1 https://github.com/streetwriters/notesnook.git .
+RUN git clone --depth=1 https://github.com/beardedtek/notesnook.git .
 
 # Install dependencies (monorepo root)
 RUN npm ci
