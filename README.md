@@ -29,7 +29,7 @@ This setup includes the following services:
 ### 1. Clone and Setup
 
 ```bash
-git clone <your-repo>
+git clone https://github.com/beardedtek/notesnook-docker
 cd notesnook-docker
 ```
 
