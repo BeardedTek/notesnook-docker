@@ -1,16 +1,46 @@
 #!/bin/bash
 
 # Notesnook Docker Startup Script
-# Automatically selects the correct Docker Compose configuration based on SELF_HOST_S3 setting
+# Automatically selects the correct Docker Compose configuration based on environment variables
 
 set -e
 
 # Load environment variables
+# Load .env file if it exists
 if [ -f .env ]; then
-    export $(grep -v '^#' .env | xargs)
+    echo "Loading environment from .env"
+    # Remove carriage returns and export variables
+    while IFS= read -r line; do
+        line=$(echo "$line" | tr -d '\r')
+        if [[ "$line" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]] && [[ ! "$line" =~ ^# ]]; then
+            export "$line"
+        fi
+    done < .env
+fi
+
+# Load all env/* files
+if [ -d env ]; then
+    for env_file in env/*.env; do
+        if [ -f "$env_file" ]; then
+            echo "Loading environment from $env_file"
+            # Remove carriage returns and export variables
+            while IFS= read -r line; do
+                line=$(echo "$line" | tr -d '\r')
+                if [[ "$line" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]] && [[ ! "$line" =~ ^# ]]; then
+                    export "$line"
+                fi
+            done < "$env_file"
+        fi
+    done
 fi
 
 echo "Starting Notesnook Docker setup..."
+
+# Show current configuration
+echo "Configuration loaded:"
+echo "  SELF_HOST_S3: ${SELF_HOST_S3:-not set}"
+echo "  USE_WEB_APP: ${USE_WEB_APP:-not set}"
+echo "  USE_TRAEFIK: ${USE_TRAEFIK:-not set}"
 
 # Validation function
 validate_config() {
