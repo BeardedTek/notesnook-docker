@@ -61,6 +61,14 @@ sudo systemctl enable docker.service
 
 ## Quick Start
 
+### Option 1: Interactive Configuration (Recommended)
+
+1. Clone this repository
+2. Run the interactive configuration script: `./configure.sh`
+3. Run `./start.sh`
+
+### Option 2: Manual Configuration
+
 1. Clone this repository
 2. Configure your environment variables in the `env/` directory files
 3. Run `./start.sh`

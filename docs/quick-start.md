@@ -17,6 +17,18 @@ cd notesnook-docker
 
 ## Step 2: Environment Configuration
 
+### Option A: Interactive Configuration (Recommended)
+
+Run the interactive configuration script:
+
+```bash
+./configure.sh
+```
+
+This will guide you through setting up all the required configuration with validation and helpful prompts.
+
+### Option B: Manual Configuration
+
 Configure your environment variables by editing the files in the `env/` directory. The files are organized by category for easy configuration:
 
 ### Basic Configuration (`env/basic.env`)
