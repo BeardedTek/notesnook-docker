@@ -1,0 +1,235 @@
+# Caddyfile for Notesnook
+# This configuration provides automatic HTTPS and reverse proxy functionality
+
+# Global options
+{
+    # Email for Let's Encrypt
+    email ${CADDY_EMAIL:-admin@example.com}
+    
+    # Enable HTTP/3
+    servers {
+        protocol {
+            experimental_http3
+        }
+    }
+    
+    # Enable metrics (optional)
+    # admin localhost:2019
+    # metrics
+}
+
+# Rate limiting
+(rate_limit) {
+    rate_limit {
+        zone api {
+            key {remote_host}
+            events 100
+            window 1m
+        }
+    }
+}
+
+# Security headers
+(security_headers) {
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Frame-Options DENY
+        X-Content-Type-Options nosniff
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' wss: https:;"
+    }
+}
+
+# Main application server
+app.${BASE_DOMAIN:-localhost} {
+    import security_headers
+    
+    reverse_proxy host.docker.internal:8888 {
+        header_up Host {host}
+        header_up X-Real-IP {remote}
+        header_up X-Forwarded-For {remote}
+        header_up X-Forwarded-Proto {scheme}
+    }
+    
+    # Enable compression
+    encode gzip
+    
+    # Logging
+    log {
+        output file /var/log/caddy/app.log
+        format json
+    }
+}
+
+# API server
+notes.${BASE_DOMAIN:-localhost} {
+    import rate_limit
+    import security_headers
+    
+    reverse_proxy host.docker.internal:5264 {
+        header_up Host {host}
+        header_up X-Real-IP {remote}
+        header_up X-Forwarded-For {remote}
+        header_up X-Forwarded-Proto {scheme}
+    }
+    
+    # API-specific headers
+    header {
+        Access-Control-Allow-Origin "https://app.${BASE_DOMAIN:-localhost}"
+        Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+        Access-Control-Allow-Headers "Content-Type, Authorization"
+    }
+    
+    # Handle preflight requests
+    @options {
+        method OPTIONS
+    }
+    respond @options 200
+    
+    # Enable compression
+    encode gzip
+    
+    # Logging
+    log {
+        output file /var/log/caddy/api.log
+        format json
+    }
+}
+
+# Authentication server
+auth.${BASE_DOMAIN:-localhost} {
+    import rate_limit
+    import security_headers
+    
+    reverse_proxy host.docker.internal:8264 {
+        header_up Host {host}
+        header_up X-Real-IP {remote}
+        header_up X-Forwarded-For {remote}
+        header_up X-Forwarded-Proto {scheme}
+    }
+    
+    # Auth-specific headers
+    header {
+        Access-Control-Allow-Origin "https://app.${BASE_DOMAIN:-localhost}"
+        Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+        Access-Control-Allow-Headers "Content-Type, Authorization"
+    }
+    
+    # Handle preflight requests
+    @options {
+        method OPTIONS
+    }
+    respond @options 200
+    
+    # Enable compression
+    encode gzip
+    
+    # Logging
+    log {
+        output file /var/log/caddy/auth.log
+        format json
+    }
+}
+
+# SSE server
+sse.${BASE_DOMAIN:-localhost} {
+    import security_headers
+    
+    reverse_proxy host.docker.internal:7264 {
+        header_up Host {host}
+        header_up X-Real-IP {remote}
+        header_up X-Forwarded-For {remote}
+        header_up X-Forwarded-Proto {scheme}
+        
+        # SSE-specific configuration
+        header_up Connection ""
+        header_up Cache-Control "no-cache"
+    }
+    
+    # SSE-specific headers
+    header {
+        Cache-Control "no-cache, no-store, must-revalidate"
+        Connection "keep-alive"
+    }
+    
+    # Logging
+    log {
+        output file /var/log/caddy/sse.log
+        format json
+    }
+}
+
+# Monograph server (public sharing)
+monograph.${BASE_DOMAIN:-localhost} {
+    import security_headers
+    
+    reverse_proxy host.docker.internal:6264 {
+        header_up Host {host}
+        header_up X-Real-IP {remote}
+        header_up X-Forwarded-For {remote}
+        header_up X-Forwarded-Proto {scheme}
+    }
+    
+    # Public sharing headers (less restrictive)
+    header {
+        X-Frame-Options SAMEORIGIN
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:;"
+    }
+    
+    # Enable compression
+    encode gzip
+    
+    # Logging
+    log {
+        output file /var/log/caddy/monograph.log
+        format json
+    }
+}
+
+# S3/MinIO server
+s3.${BASE_DOMAIN:-localhost} {
+    import security_headers
+    
+    # S3-specific configuration
+    request_body {
+        max_size 100MB
+    }
+    
+    reverse_proxy host.docker.internal:9000 {
+        header_up Host {host}
+        header_up X-Real-IP {remote}
+        header_up X-Forwarded-For {remote}
+        header_up X-Forwarded-Proto {scheme}
+        
+        # S3-specific headers
+        header_up X-Amz-Content-Sha256 {header.X-Amz-Content-Sha256}
+        header_up X-Amz-Date {header.X-Amz-Date}
+        header_up Authorization {header.Authorization}
+    }
+    
+    # S3-specific headers
+    header {
+        Access-Control-Allow-Origin "*"
+        Access-Control-Allow-Methods "GET, POST, PUT, DELETE, HEAD, OPTIONS"
+        Access-Control-Allow-Headers "Content-Type, Authorization, X-Amz-Content-Sha256, X-Amz-Date, X-Amz-Security-Token"
+        Access-Control-Max-Age 86400
+    }
+    
+    # Handle preflight requests
+    @options {
+        method OPTIONS
+    }
+    respond @options 200
+    
+    # Logging
+    log {
+        output file /var/log/caddy/s3.log
+        format json
+    }
+}
+
+# Redirect www to non-www (optional)
+www.${BASE_DOMAIN:-localhost} {
+    redir https://${BASE_DOMAIN:-localhost}{uri} permanent
+}

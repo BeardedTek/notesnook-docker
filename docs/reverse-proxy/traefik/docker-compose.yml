@@ -1,0 +1,97 @@
+version: '3.8'
+
+networks:
+  traefik:
+    external: true
+
+services:
+  traefik:
+    image: traefik:v3.0
+    container_name: traefik
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - traefik
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik-data:/data
+      - traefik-config:/etc/traefik
+    environment:
+      - TRAEFIK_LOG_LEVEL=INFO
+    command:
+      # Enable Docker provider
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=traefik
+      
+      # Enable API and Dashboard
+      - --api.dashboard=true
+      - --api.insecure=false
+      
+      # Entry points
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      
+      # HTTP to HTTPS redirect
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      
+      # Let's Encrypt configuration
+      - --certificatesresolvers.le.acme.tlschallenge=true
+      - --certificatesresolvers.le.acme.email=${ACME_EMAIL:-admin@example.com}
+      - --certificatesresolvers.le.acme.storage=/data/acme.json
+      
+      # Global redirect to https
+      - --global.sendanonymoususage=false
+      
+      # Enable access logs
+      - --accesslog=true
+      - --accesslog.format=json
+      
+      # Enable metrics
+      - --metrics.prometheus=true
+      
+      # Security headers
+      - --entrypoints.websecure.http.tls.options=modern@file
+      - --entrypoints.websecure.http.tls.certresolver=le
+      
+      # Dashboard configuration
+      - --providers.file.directory=/etc/traefik
+      - --providers.file.watch=true
+
+    labels:
+      # Enable Traefik for itself
+      - "traefik.enable=true"
+      
+      # Dashboard router
+      - "traefik.http.routers.traefik.rule=Host(`traefik.${BASE_DOMAIN:-localhost}`)"
+      - "traefik.http.routers.traefik.entrypoints=websecure"
+      - "traefik.http.routers.traefik.tls=true"
+      - "traefik.http.routers.traefik.tls.certresolver=le"
+      - "traefik.http.routers.traefik.service=api@internal"
+      
+      # Basic auth for dashboard (change username/password)
+      - "traefik.http.routers.traefik.middlewares=auth"
+      - "traefik.http.middlewares.auth.basicauth.users=${TRAEFIK_AUTH:-admin:$$2y$$10$$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi}"
+      
+      # Security headers
+      - "traefik.http.routers.traefik.middlewares=security-headers"
+      - "traefik.http.middlewares.security-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
+      - "traefik.http.middlewares.security-headers.headers.customrequestheaders.X-Forwarded-Port=443"
+      - "traefik.http.middlewares.security-headers.headers.customrequestheaders.X-Real-IP="
+      - "traefik.http.middlewares.security-headers.headers.customrequestheaders.X-Forwarded-For="
+
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  traefik-data:
+    driver: local
+  traefik-config:
+    driver: local

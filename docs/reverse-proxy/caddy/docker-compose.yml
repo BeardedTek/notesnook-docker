@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  caddy:
+    image: caddy:2.7-alpine
+    container_name: caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"  # HTTP/3 support
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+      - caddy-logs:/var/log/caddy
+    environment:
+      - BASE_DOMAIN=${BASE_DOMAIN:-localhost}
+      - CADDY_EMAIL=${CADDY_EMAIL:-admin@example.com}
+    networks:
+      - caddy-network
+    healthcheck:
+      test: ["CMD", "caddy", "version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  caddy-network:
+    driver: bridge
+
+volumes:
+  caddy-data:
+    driver: local
+  caddy-config:
+    driver: local
+  caddy-logs:
+    driver: local

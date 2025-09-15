@@ -1,0 +1,28 @@
+# Docker Compose override file for Notesnook Web App
+# This file enables the web app when USE_WEB_APP=true
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.webapp.yml up
+
+services:
+  app:
+    image: beardedtek/notesnook-web
+    build:
+      context: app
+      dockerfile: Dockerfile
+      args:
+        NN_API_HOST: ${NOTESNOOK_SYNC_PUBLIC_URL}
+        NN_AUTH_HOST: ${AUTH_SERVER_PUBLIC_URL}
+        NN_SSE_HOST: ${SSE_SERVER_PUBLIC_URL}
+        NN_MONOGRAPH_HOST: ${MONOGRAPH_PUBLIC_URL}
+    ports:
+      - "8888:80"
+    restart: always
+    env_file:
+      - .env
+      - env/domain.env
+      - env/basic.env
+      - env/smtp.env
+      - env/twilio.env
+      - env/servers.env
+      - env/s3.env
+      - env/traefik.env
+      - env/webapp.env

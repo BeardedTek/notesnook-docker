@@ -1,0 +1,99 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - nginx-ssl:/etc/letsencrypt
+      - nginx-logs:/var/log/nginx
+    environment:
+      - BASE_DOMAIN=${BASE_DOMAIN:-localhost}
+    depends_on:
+      - certbot
+    networks:
+      - nginx-network
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  certbot:
+    image: certbot/certbot:latest
+    container_name: certbot
+    restart: unless-stopped
+    volumes:
+      - nginx-ssl:/etc/letsencrypt
+      - nginx-webroot:/var/www/certbot
+    environment:
+      - EMAIL=${NGINX_EMAIL:-admin@example.com}
+      - BASE_DOMAIN=${BASE_DOMAIN:-localhost}
+    command: >
+      sh -c "
+        # Wait for nginx to be ready
+        sleep 10;
+        
+        # Create webroot directory
+        mkdir -p /var/www/certbot;
+        
+        # Request certificate if it doesn't exist
+        if [ ! -f /etc/letsencrypt/live/${BASE_DOMAIN}/fullchain.pem ]; then
+          echo 'Requesting SSL certificate...';
+          certbot certonly 
+            --webroot 
+            --webroot-path=/var/www/certbot 
+            --email ${NGINX_EMAIL} 
+            --agree-tos 
+            --no-eff-email 
+            -d ${BASE_DOMAIN}
+            -d app.${BASE_DOMAIN}
+            -d notes.${BASE_DOMAIN}
+            -d auth.${BASE_DOMAIN}
+            -d sse.${BASE_DOMAIN}
+            -d monograph.${BASE_DOMAIN}
+            -d s3.${BASE_DOMAIN};
+        else
+          echo 'SSL certificate already exists';
+        fi;
+        
+        # Set up automatic renewal
+        while :; do
+          echo 'Checking certificate renewal...';
+          certbot renew --quiet;
+          sleep 86400;
+        done
+      "
+    networks:
+      - nginx-network
+
+  # Temporary nginx for initial certificate generation
+  nginx-init:
+    image: nginx:1.25-alpine
+    container_name: nginx-init
+    ports:
+      - "8080:80"
+    volumes:
+      - nginx-webroot:/var/www/certbot
+      - ./nginx-init.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - nginx-network
+    profiles:
+      - init
+
+networks:
+  nginx-network:
+    driver: bridge
+
+volumes:
+  nginx-ssl:
+    driver: local
+  nginx-logs:
+    driver: local
+  nginx-webroot:
+    driver: local

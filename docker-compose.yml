@@ -11,42 +11,16 @@ x-server-discovery: &server-discovery
 
 x-env-files: &env-files
   - .env
+  - env/domain.env
+  - env/basic.env
+  - env/smtp.env
+  - env/twilio.env
+  - env/servers.env
+  - env/s3.env
+  - env/traefik.env
+  - env/webapp.env
 
 services:
-  validate:
-    image: vandot/alpine-bash
-    entrypoint: /bin/bash
-    env_file: *env-files
-    command:
-      - -c
-      - |
-        # List of required environment variables
-        required_vars=(
-          "INSTANCE_NAME"
-          "NOTESNOOK_API_SECRET"
-          "DISABLE_SIGNUPS"
-          "SMTP_USERNAME"
-          "SMTP_PASSWORD"
-          "SMTP_HOST"
-          "SMTP_PORT"
-          "AUTH_SERVER_PUBLIC_URL"
-          "NOTESNOOK_APP_PUBLIC_URL"
-          "MONOGRAPH_PUBLIC_URL"
-          "ATTACHMENTS_SERVER_PUBLIC_URL"
-        )
-
-        # Check each required environment variable
-        for var in "$${required_vars[@]}"; do
-          if [ -z "$${!var}" ]; then
-            echo "Error: Required environment variable $$var is not set."
-            exit 1
-          fi
-        done
-
-        echo "All required environment variables are set."
-    # Ensure the validate service runs first
-    restart: "no"
-
   notesnook-db:
     image: mongo:7.0.12
     hostname: notesnook-db
@@ -55,9 +29,6 @@ services:
     networks:
       - notesnook
     command: --replSet rs0 --bind_ip_all
-    depends_on:
-      validate:
-        condition: service_completed_successfully
     healthcheck:
       test: echo 'try { rs.status() } catch (err) { rs.initiate() }; db.runCommand("ping").ok' | mongosh mongodb://localhost:27017 --quiet
       interval: 40s
@@ -65,45 +36,6 @@ services:
       retries: 3
       start_period: 60s
 
-  notesnook-s3:
-    image: minio/minio:RELEASE.2024-07-29T22-14-52Z
-    ports:
-      - 9000:9000
-    networks:
-      - notesnook
-    volumes:
-      - s3data:/data/s3
-    environment:
-      MINIO_BROWSER: "on"
-    depends_on:
-      validate:
-        condition: service_completed_successfully
-    env_file: *env-files
-    command: server /data/s3 --console-address :9090
-    healthcheck:
-      test: timeout 5s bash -c ':> /dev/tcp/127.0.0.1/9000' || exit 1
-      interval: 40s
-      timeout: 30s
-      retries: 3
-      start_period: 60s
-
-  # There's no way to specify a default bucket in Minio so we have to
-  # set it up ourselves.
-  setup-s3:
-    image: minio/mc:RELEASE.2024-07-26T13-08-44Z
-    depends_on:
-      - notesnook-s3
-    networks:
-      - notesnook
-    entrypoint: /bin/bash
-    env_file: *env-files
-    command:
-      - -c
-      - |
-        until mc alias set minio http://notesnook-s3:9000 ${MINIO_ROOT_USER:-minioadmin} ${MINIO_ROOT_PASSWORD:-minioadmin}; do
-          sleep 1;
-        done;
-        mc mb minio/attachments -p
 
   identity-server:
     image: streetwriters/identity:latest
@@ -133,8 +65,6 @@ services:
       - notesnook
     env_file: *env-files
     depends_on:
-      - notesnook-s3
-      - setup-s3
       - identity-server
     healthcheck:
       test: wget --tries=1 -nv -q  http://localhost:5264/health -O- || exit 1
@@ -146,13 +76,14 @@ services:
       <<: *server-discovery
       MONGODB_CONNECTION_STRING: mongodb://notesnook-db:27017/?replSet=rs0
       MONGODB_DATABASE_NAME: notesnook
-      S3_INTERNAL_SERVICE_URL: "http://notesnook-s3:9000"
-      S3_INTERNAL_BUCKET_NAME: "attachments"
-      S3_ACCESS_KEY_ID: "${MINIO_ROOT_USER:-minioadmin}"
-      S3_ACCESS_KEY: "${MINIO_ROOT_PASSWORD:-minioadmin}"
-      S3_SERVICE_URL: "${ATTACHMENTS_SERVER_PUBLIC_URL}"
-      S3_REGION: "us-east-1"
-      S3_BUCKET_NAME: "attachments"
+      # S3 configuration - conditional based on SELF_HOST_S3
+      S3_ACCESS_KEY_ID: "${S3_ACCESS_KEY_ID:-${MINIO_ROOT_USER:-minioadmin}}"
+      S3_ACCESS_KEY: "${S3_ACCESS_KEY:-${MINIO_ROOT_PASSWORD:-minioadmin}}"
+      S3_SERVICE_URL: "${S3_SERVICE_URL:-${ATTACHMENTS_SERVER_PUBLIC_URL}}"
+      S3_REGION: "${S3_REGION:-us-east-1}"
+      S3_BUCKET_NAME: "${S3_BUCKET_NAME:-attachments}"
+      S3_INTERNAL_SERVICE_URL: "${S3_INTERNAL_SERVICE_URL:-http://notesnook-s3:9000}"
+      S3_INTERNAL_BUCKET_NAME: "${S3_INTERNAL_BUCKET_NAME:-${S3_BUCKET_NAME:-attachments}}"
 
   sse-server:
     image: streetwriters/sse:latest
@@ -201,30 +132,12 @@ services:
       - AUTOHEAL_INTERVAL=60
       - AUTOHEAL_START_PERIOD=300
       - AUTOHEAL_DEFAULT_STOP_TIMEOUT=10
-    depends_on:
-      validate:
-        condition: service_completed_successfully
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
 
-  app:
-    image: beardedtek/notesnook-web
-    build:
-      context: app
-      dockerfile: Dockerfile
-      args:
-        NN_API_HOST: ${NOTESNOOK_SYNC_PUBLIC_URL}
-        NN_AUTH_HOST: ${AUTH_SERVER_PUBLIC_URL}
-        NN_SSE_HOST: ${SSE_SERVER_PUBLIC_URL}
-        NN_MONOGRAPH_HOST: ${MONOGRAPH_PUBLIC_URL}
-    ports:
-      - "8888:80"
-    restart: always
-    env_file: *env-files
 
 networks:
   notesnook:
 
 volumes:
   dbdata:
-  s3data:

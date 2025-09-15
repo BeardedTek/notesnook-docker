@@ -18,30 +18,6 @@ services:
       - "traefik.http.routers.sse.service=sse-entrypoint"
       - 'traefik.http.services.sse-entrypoint.loadbalancer.server.port=7264'
 
-  notesnook-s3:
-    networks:
-      - traefik
-    labels:
-      # Enable Traefik for S3 Server
-      # Required for attachments upload/download
-      - 'traefik.enable=true'
-      - 'traefik.docker.network=traefik'
-      - 'traefik.http.routers.s3.rule=Host(`${NOTESNOOK_S3_DOMAIN}`)'
-      - 'traefik.http.routers.s3.entryPoints=https'
-      - 'traefik.http.routers.s3.tls=true'
-      - 'traefik.http.routers.s3.tls.certresolver=le'
-      - "traefik.http.routers.s3.service=s3-entrypoint"
-      - 'traefik.http.services.s3-entrypoint.loadbalancer.server.port=9000'
-
-      # Enable Traefik for Minio Frontend
-      # OPTIONAL for accessing Minio web interface
-      # Not necessary for operation of Notesnook
-      # - 'traefik.http.routers.app-s3.rule=Host(`${NOTESNOOK_S3_APP_DOMAIN}`)'
-      # - 'traefik.http.routers.app-s3.entryPoints=https'
-      # - 'traefik.http.routers.app-s3.tls=true'
-      # - 'traefik.http.routers.app-s3.tls.certresolver=le'
-      # - "traefik.http.routers.app-s3.service=app-s3-entrypoint"
-      # - 'traefik.http.services.app-s3-entrypoint.loadbalancer.server.port=9090'
   identity-server:
     networks:
       - traefik
