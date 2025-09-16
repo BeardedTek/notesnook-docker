@@ -11,14 +11,6 @@ x-server-discovery: &server-discovery
 
 x-env-files: &env-files
   - .env
-  - env/domain.env
-  - env/basic.env
-  - env/smtp.env
-  - env/twilio.env
-  - env/servers.env
-  - env/s3.env
-  - env/traefik.env
-  - env/webapp.env
 
 services:
   notesnook-db:

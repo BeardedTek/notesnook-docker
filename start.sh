@@ -5,8 +5,7 @@
 
 set -e
 
-# Load environment variables
-# Load .env file if it exists
+# Load environment variables from .env file
 if [ -f .env ]; then
     echo "Loading environment from .env"
     # Remove carriage returns and export variables
@@ -16,22 +15,9 @@ if [ -f .env ]; then
             export "$line"
         fi
     done < .env
-fi
-
-# Load all env/* files
-if [ -d env ]; then
-    for env_file in env/*.env; do
-        if [ -f "$env_file" ]; then
-            echo "Loading environment from $env_file"
-            # Remove carriage returns and export variables
-            while IFS= read -r line; do
-                line=$(echo "$line" | tr -d '\r')
-                if [[ "$line" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]] && [[ ! "$line" =~ ^# ]]; then
-                    export "$line"
-                fi
-            done < "$env_file"
-        fi
-    done
+else
+    echo "Warning: .env file not found. Please copy env-example to .env and configure it."
+    exit 1
 fi
 
 echo "Starting Notesnook Docker setup..."
@@ -151,4 +137,4 @@ fi
 
 # Start services with the appropriate configuration
 echo "Starting services with: $COMPOSE_FILES"
-docker-compose $COMPOSE_FILES up "$@"
+docker-compose -f $COMPOSE_FILES up "$@"

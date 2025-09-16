@@ -15,14 +15,6 @@ services:
       MINIO_BROWSER: "on"
     env_file:
       - .env
-      - env/domain.env
-      - env/basic.env
-      - env/smtp.env
-      - env/twilio.env
-      - env/servers.env
-      - env/s3.env
-      - env/traefik.env
-      - env/webapp.env
     command: server /data/s3 --console-address :9090
     healthcheck:
       test: timeout 5s bash -c ':> /dev/tcp/127.0.0.1/9000' || exit 1
@@ -42,14 +34,6 @@ services:
     entrypoint: /bin/bash
     env_file:
       - .env
-      - env/domain.env
-      - env/basic.env
-      - env/smtp.env
-      - env/twilio.env
-      - env/servers.env
-      - env/s3.env
-      - env/traefik.env
-      - env/webapp.env
     command:
       - -c
       - |

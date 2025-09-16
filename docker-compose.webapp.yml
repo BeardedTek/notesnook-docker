@@ -18,11 +18,3 @@ services:
     restart: always
     env_file:
       - .env
-      - env/domain.env
-      - env/basic.env
-      - env/smtp.env
-      - env/twilio.env
-      - env/servers.env
-      - env/s3.env
-      - env/traefik.env
-      - env/webapp.env

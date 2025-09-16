@@ -29,9 +29,15 @@ This will guide you through setting up all the required configuration with valid
 
 ### Option B: Manual Configuration
 
-Configure your environment variables by editing the files in the `env/` directory. The files are organized by category for easy configuration:
+Copy the example environment file and configure it:
 
-### Basic Configuration (`env/basic.env`)
+```bash
+cp env-example .env
+```
+
+Then edit `.env` and configure the following sections:
+
+#### Basic Configuration
 
 ```env
 INSTANCE_NAME=my-notesnook-instance
@@ -39,13 +45,13 @@ NOTESNOOK_API_SECRET=your-secure-api-secret-32-chars-minimum
 DISABLE_SIGNUPS=false
 ```
 
-### Domain Configuration (`env/domain.env`)
+#### Domain Configuration
 
 ```env
 BASE_DOMAIN=your-domain.com
 ```
 
-### SMTP Configuration (`env/smtp.env`)
+#### SMTP Configuration
 
 ```env
 SMTP_USERNAME=your-email@domain.com
@@ -54,7 +60,7 @@ SMTP_HOST=smtp.your-domain.com
 SMTP_PORT=587
 ```
 
-### S3 Configuration (`env/s3.env`)
+#### S3 Configuration
 
 ```env
 SELF_HOST_S3=true
@@ -62,19 +68,17 @@ MINIO_ROOT_USER=admin
 MINIO_ROOT_PASSWORD=your-secure-minio-password
 ```
 
-### Web App Configuration (`env/webapp.env`)
+#### Web App Configuration
 
 ```env
 USE_WEB_APP=true
 ```
 
-### Traefik Configuration (`env/traefik.env`)
+#### Traefik Configuration
 
 ```env
 USE_TRAEFIK=false
 ```
-
-**Optional**: You can also create a `.env` file in the root directory to override any settings from the `env/` files if needed.
 
 ## Step 3: Generate Required Secrets
 
