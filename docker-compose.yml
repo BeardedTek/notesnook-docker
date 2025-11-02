@@ -217,6 +217,7 @@ services:
         NN_AUTH_HOST: ${AUTH_SERVER_PUBLIC_URL}
         NN_SSE_HOST: ${SSE_SERVER_PUBLIC_URL}
         NN_MONOGRAPH_HOST: ${MONOGRAPH_PUBLIC_URL}
+        NN_NOTESNOOK_HOST:  ${NOTESNOOK_APP_PUBLIC_URL}
     ports:
       - "8888:80"
     restart: always

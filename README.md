@@ -119,6 +119,7 @@ The web app is automatically configured to connect to your self-hosted services 
 - `NN_AUTH_HOST` - Override the default authentication server URL (defaults to `AUTH_SERVER_PUBLIC_URL`)
 - `NN_SSE_HOST` - Override the default SSE server URL (defaults to `SSE_SERVER_PUBLIC_URL`)
 - `NN_MONOGRAPH_HOST` - Override the default monograph server URL (defaults to `MONOGRAPH_PUBLIC_URL`)
+- `NN_NOTESNOOK_HOST` - Override the default monograph server URL (defaults to `NOTESNOOK_APP_PUBLIC_URL`)
 
 **Note**: These variables are optional and will automatically use your self-hosted service URLs if not specified.
 
