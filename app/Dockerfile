@@ -1,5 +1,5 @@
 # Build Stage
-FROM node:20 AS builder
+FROM node:22 AS builder
 
 WORKDIR /app
 
@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends git \
 RUN git clone --depth=1 https://github.com/beardedtek/notesnook.git .
 
 # Install dependencies (monorepo root)
-RUN npm ci
+RUN npm ci --ignore-scripts --prefer-offline --no-audit && npm run bootstrap -- --scope=web
 
 # Accept build-time environment variables for server URLs
 ARG NN_API_HOST
