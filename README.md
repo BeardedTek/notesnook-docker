@@ -148,3 +148,17 @@ mv docker-compose.traefik.yml docker-compose.override.yml
 ### Nginx
 
 To use Nginx please use [https://wiki.steph.click/books/containered-apps/page/notesnook-sync-server-local-storage](https://wiki.steph.click/books/containered-apps/page/notesnook-sync-server-local-storage) as a reference.
+
+## Database Setup
+
+### MongoDB (without AVX)
+
+MongoDb requires a CPU with AVX support from version > 4.4 onwards. Some older CPU models do not provide this support. In this case, the following docker-compose file can be used:
+
+```bash
+# Build the app container
+docker compose -f docker-compose.no-avx.yml build
+
+# Start all services
+docker-compose -f docker-compose.no-avx.yml up -d
+```
